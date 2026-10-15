@@ -1,0 +1,43 @@
+name: build, test and release distro
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1' # every Monday at 6:00 AM UTC
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - 'configure.sh'
+      - 'rootfs/**'
+      - 'scripts/**'
+      - 'Makefile'
+      - '.github/workflows/ci-cd.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install fakeroot
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+      
+      - name: Set release tag
+        id: tag
+        run: echo "RELEASE_TAG=$(date -u '+%Y.%m.%d')-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build the distro
+        run: make build IMAGE_VERSION=${{ steps.tag.outputs.tag }}
+
+      - name: Test the distro
+        run: make test IMAGE_VERSION=${{ steps.tag.outputs.tag }}
+
+      - name: Release the distro
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: DevArchy ${{ steps.tag.outputs.tag }}
+          files:
+            - workdir/devarchy-${{ steps.tag.outputs.tag }}.wsl
