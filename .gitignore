@@ -1,0 +1,6 @@
+certificates/*
+workdir
+repro
+*.wsl
+*.cer
+*.crt
